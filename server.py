@@ -12,12 +12,15 @@ class Shop:
 
     def register(self, recv):
         op1 = Shop_op()
-        if op1.register(recv['user'], recv['passwd'], recv['shop_name'], recv['phone'], recv['addr']):
+        if op1.register(recv['user'], recv['passwd'], recv.get('shop_name', ''), recv['phone'], recv['addr']):
             data = {'result': 'success'}
         else:
             data = {'result': 'fail'}
-        self.conn.send(json.dumps(data).encode())
+        response = json.dumps(data).encode()
+        self.conn.send(response)
+        print(f"Sent response: {response}")
         self.conn.close()
+        print("Connection closed")
 
     def login(self, recv):
         op1 = Shop_op()
@@ -181,57 +184,34 @@ class Customer:
         self.conn.close()
 
 
-if __name__ == "__main__":
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind(('127.0.0.1', 5000))
-    s.listen(20)
+def start_server():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind(('127.0.0.1', 5000))
+    server_socket.listen(5)
+    print("Server started and listening on port 5000")
+
     while True:
-        conn, addr = s.accept()
-        recv = json.loads(conn.recv(1024).decode())
-        print(json.dumps(recv))
-        if recv['id'] == 'shop':
-            Shop1 = Shop(conn)
-            if recv['type'] == 'register':
-                Shop1.register(recv)
-            elif recv['type'] == 'login':
-                Shop1.login(recv)
-            elif recv['type'] == 'add_goods':
-                Shop1.addgoods(recv)
-            elif recv['type'] == 'view_goods':
-                Shop1.viewgoods(recv)
-            elif recv['type'] == 'view_trade':
-                Shop1.viewtrade(recv)
-            elif recv['type'] == 'select_goods':
-                Shop1.selectgoods(recv)
-            elif recv['type'] == 'delete_goods':
-                Shop1.deletegoods(recv)
-            elif recv['type'] == 'select_goodsinfo':
-                Shop1.selectgoodsinfo(recv)
-            elif recv['type'] == 'update_goods':
-                Shop1.updategoods(recv)
-            elif recv['type'] == 'shop_info':
-                Shop1.shopinfo(recv)
-            elif recv['type'] == 'update_shop':
-                Shop1.updateshop(recv)
-        else:
-            Cus1 = Customer(conn)
-            if recv['type'] == 'register':
-                Cus1.register(recv)
-            elif recv['type'] == 'login':
-                Cus1.login(recv)
-            elif recv['type'] == 'view_goods':
-                Cus1.viewgoods(recv)
-            elif recv['type'] == 'all_goods':
-                Cus1.allgoods(recv)
-            elif recv['type'] == 'buy_goods':
-                Cus1.buygoods(recv)
-            elif recv['type'] == 'view_trade':
-                Cus1.viewtrade(recv)
-            elif recv['type'] == 'all_trade':
-                Cus1.alltrade(recv)
-            elif recv['type'] == 'off_trade':
-                Cus1.offtrade(recv)
-            elif recv['type'] == 'cus_info':
-                Cus1.cusinfo(recv)
-            elif recv['type'] == 'update_cus':
-                Cus1.updatecus(recv)
+        client_socket, addr = server_socket.accept()
+        print(f"Connection from {addr}")
+        shop = Shop(client_socket)
+        try:
+            recvdata = client_socket.recv(1024).decode()
+            print(f"Received data: {recvdata}")
+            if recvdata:
+                data = json.loads(recvdata)
+                if data['type'] == 'register':
+                    shop.register(data)
+                elif data['type'] == 'login':
+                    shop.login(data)
+                else:
+                    print("Unknown request type")
+            else:
+                print("No data received from client.")
+        except Exception as e:
+            print(f"Error handling client data: {e}")
+        finally:
+            client_socket.close()
+
+
+if __name__ == "__main__":
+    start_server()
