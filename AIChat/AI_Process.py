@@ -1,9 +1,8 @@
-from openai import OpenAI
+import openai
 import os
 
 #  设置 OpenAI API 密钥
-# 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
-openai_api_key = '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'
+openai.api_key = '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'
 
 # # 设置代理 URL 和端口
 # proxy_url = 'http://127.0.0.1'
@@ -13,18 +12,26 @@ openai_api_key = 'sk-proj-DQILeQfHHNpc-DEJ7MoFcHr3_KxcygtwWbjkRI1mdFvfRBcC-QeOBN
 # os.environ['http_proxy'] = f'{proxy_url}:{proxy_port}'
 # os.environ['https_proxy'] = f'{proxy_url}:{proxy_port}'
 
-client = OpenAI(api_key=openai_api_key)
-
 
 def get_ai_response(prompt):
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.7,
-        max_tokens=150,
-        top_p=1
-    )
-    return response.choices[0].message['content'].strip()
+    try:
+        # 使用新的 Completion API 方式
+        response = openai.Completion.create(
+            model="gpt-3.5-turbo",  # 你可以选择 gpt-4 或其他模型
+            prompt=prompt,           # 传入的用户提示
+            max_tokens=150,          # 最大 token 数量
+            temperature=0.7,         # 控制文本的随机性
+        )
+
+        # 返回生成的内容
+        return response.choices[0].text.strip()
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+# 示例：调用 GPT-3.5 来回答问题
+if __name__ == "__main__":
+    prompt = "Explain the process of photosynthesis."
+    response = get_ai_response(prompt)
+    print("GPT-3.5 Response: ", response)

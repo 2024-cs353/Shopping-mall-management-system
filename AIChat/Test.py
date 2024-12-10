@@ -1,7 +1,6 @@
 import openai
 
 # 设置你的 OpenAI API 密钥
-openai.api_key = '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'
 
 # 定义一个函数来与 OpenAI GPT-3 模型交互
 
