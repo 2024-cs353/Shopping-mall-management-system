@@ -1,0 +1,4 @@
+OpenAi API
+```txt
+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
+```
