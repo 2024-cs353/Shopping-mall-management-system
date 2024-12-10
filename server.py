@@ -184,7 +184,79 @@ class Customer:
         self.conn.close()
 
 
+def handle_client(conn, addr):
+    """处理客户端请求的函数"""
+    print(f"Connection from {addr}")
+    try:
+        recvdata = conn.recv(1024).decode()
+        if not recvdata:
+            print("No data received from client.")
+            return
+
+        data = json.loads(recvdata)
+        print(f"Received data: {data}")
+
+        if data['id'] == 'shop':
+            shop = Shop(conn)
+            if data['type'] == 'register':
+                shop.register(data)
+            elif data['type'] == 'login':
+                shop.login(data)
+            elif data['type'] == 'add_goods':
+                shop.addgoods(data)
+            elif data['type'] == 'view_goods':
+                shop.viewgoods(data)
+            elif data['type'] == 'view_trade':
+                shop.viewtrade(data)
+            elif data['type'] == 'select_goods':
+                shop.selectgoods(data)
+            elif data['type'] == 'delete_goods':
+                shop.deletegoods(data)
+            elif data['type'] == 'select_goodsinfo':
+                shop.selectgoodsinfo(data)
+            elif data['type'] == 'update_goods':
+                shop.updategoods(data)
+            elif data['type'] == 'shop_info':
+                shop.shopinfo(data)
+            elif data['type'] == 'update_shop':
+                shop.updateshop(data)
+            else:
+                print("Unknown shop request type")
+        else:
+            customer = Customer(conn)
+            if data['type'] == 'register':
+                customer.register(data)
+            elif data['type'] == 'login':
+                customer.login(data)
+            elif data['type'] == 'view_goods':
+                customer.viewgoods(data)
+            elif data['type'] == 'all_goods':
+                customer.allgoods(data)
+            elif data['type'] == 'buy_goods':
+                customer.buygoods(data)
+            elif data['type'] == 'view_trade':
+                customer.viewtrade(data)
+            elif data['type'] == 'all_trade':
+                customer.alltrade(data)
+            elif data['type'] == 'off_trade':
+                customer.offtrade(data)
+            elif data['type'] == 'cus_info':
+                customer.cusinfo(data)
+            elif data['type'] == 'update_cus':
+                customer.updatecus(data)
+            else:
+                print("Unknown customer request type")
+
+    except Exception as e:
+        print(f"Error handling client {addr}: {e}")
+        conn.send(json.dumps({'result': 'fail', 'error': str(e)}).encode())
+    finally:
+        conn.close()
+        print(f"Connection with {addr} closed")
+
+
 def start_server():
+    """启动服务器并处理连接"""
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(('127.0.0.1', 5000))
     server_socket.listen(5)
@@ -192,25 +264,9 @@ def start_server():
 
     while True:
         client_socket, addr = server_socket.accept()
-        print(f"Connection from {addr}")
-        shop = Shop(client_socket)
-        try:
-            recvdata = client_socket.recv(1024).decode()
-            print(f"Received data: {recvdata}")
-            if recvdata:
-                data = json.loads(recvdata)
-                if data['type'] == 'register':
-                    shop.register(data)
-                elif data['type'] == 'login':
-                    shop.login(data)
-                else:
-                    print("Unknown request type")
-            else:
-                print("No data received from client.")
-        except Exception as e:
-            print(f"Error handling client data: {e}")
-        finally:
-            client_socket.close()
+        client_thread = threading.Thread(target=handle_client, args=(client_socket, addr))
+        client_thread.daemon = True
+        client_thread.start()
 
 
 if __name__ == "__main__":
